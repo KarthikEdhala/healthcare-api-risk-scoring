@@ -1,98 +1,73 @@
-🏥 Healthcare API Risk Scoring System
+# Healthcare API Risk Scoring System
 
-This project demonstrates how I approach real-world API integration challenges such as unreliable data, pagination, rate limits, and intermittent failures. The system consumes a simulated healthcare API, normalizes inconsistent patient data, calculates clinical risk scores, and submits alert lists back to the API for evaluation.
+This project shows how I handle real-world API problems: unreliable data, pagination, rate limits, and intermittent failures. It fetches patient records from a simulated healthcare API, cleans and normalizes inconsistent data, computes clinical risk scores, and sends alert lists back to the API for evaluation.
 
-The focus of this project is not just getting the correct output, but showing robust engineering practices when working with imperfect external APIs.
+The goal is to show robust engineering: defensive parsing, retry logic, and deterministic scoring against imperfect external APIs.
 
-🚀 What This Project Does
+## What this project does
 
-The application retrieves patient records from a paginated healthcare API and computes a total risk score for each patient based on:
+- Reads patient records from a paginated healthcare API.
+- Normalizes messy or inconsistent patient data safely.
+- Calculates a total risk score for each patient using:
+  - Blood pressure
+  - Body temperature
+  - Age
+- Produces and submits three alert lists:
+  - High-Risk Patients: Total risk score ≥ 4
+  - Fever Patients: Temperature ≥ 99.6°F
+  - Data Quality Issues: missing, malformed, or invalid data
 
-Blood pressure readings
+## How the API behaves (why this matters)
 
-Body temperature
+The simulated API mimics real production issues:
+
+- Random 500 and 503 errors
+- Rate limiting (429 responses)
+- Paginated responses
+- Missing or malformed fields
+
+This forces the client to use retries, backoff, and safe parsing so the pipeline keeps running and produces reliable results.
+
+## Risk Scoring Logic
+
+Total Risk Score = Blood Pressure + Temperature + Age
+
+Blood Pressure (use the higher risk if systolic and diastolic disagree)
+- Normal: <120 AND <80 → 1
+- Elevated: 120–129 AND <80 → 2
+- Stage 1: 130–139 OR 80–89 → 3
+- Stage 2: ≥140 OR ≥90 → 4
+- Invalid / Missing → 0
+
+Temperature
+- ≤ 99.5°F → 0
+- 99.6–100.9°F → 1
+- ≥ 101°F → 2
+- Invalid / Missing → 0
 
 Age
+- < 40 → 1
+- 40–65 → 1
+- > 65 → 2
+- Invalid / Missing → 0
 
-Based on this analysis, it generates three alert lists:
+## Data Quality Handling
 
-High-Risk Patients: Total risk score ≥ 4
+A patient is flagged for Data Quality Issues if any of the following are true:
+- Blood pressure is missing, malformed, or non-numeric
+- Temperature is missing or non-numeric
+- Age is missing or not a valid number
 
-Fever Patients: Temperature ≥ 99.6°F
+These cases are handled without breaking the pipeline.
 
-Data Quality Issues: Patients with missing, malformed, or invalid data
+## Authentication
 
-These results are then submitted back to the assessment API.
-
-🧠 Why This Project Matters
-
-The API intentionally behaves like a real production system:
-
-Random 500 and 503 errors
-
-Rate limiting (429 responses)
-
-Paginated responses
-
-Missing or malformed fields
-
-This project shows how to:
-
-Implement retry logic with backoff
-
-Safely parse unreliable data
-
-Avoid crashes caused by invalid inputs
-
-Produce deterministic results from inconsistent sources
-
-📊 Risk Scoring Logic
-Blood Pressure Risk
-
-If systolic and diastolic values fall into different categories, the higher risk is used.
-
-Category	Condition	Score
-Normal	<120 AND <80	1
-Elevated	120–129 AND <80	2
-Stage 1	130–139 OR 80–89	3
-Stage 2	≥140 OR ≥90	4
-Invalid / Missing	Any malformed or missing value	0
-Temperature Risk
-Temperature	Score
-≤ 99.5°F	0
-99.6–100.9°F	1
-≥ 101°F	2
-Invalid / Missing	0
-Age Risk
-Age	Score
-< 40	1
-40–65	1
-> 65	2
-Invalid / Missing	0
-
-Total Risk Score = BP + Temperature + Age
-
-🧪 Data Quality Handling
-
-A patient is flagged under Data Quality Issues if any of the following are true:
-
-Blood pressure is missing, malformed, or non-numeric
-
-Temperature is missing or non-numeric
-
-Age is missing or not a valid number
-
-These cases are handled safely without breaking the pipeline.
-
-🔐 Authentication
-
-All API requests require an API key passed via headers:
-
+All API requests require an API key in the header:
 x-api-key: YOUR_API_KEY
 
-📤 Submission Output
+## Submission Output
 
-The final submission includes:
+The final submission sent back to the assessment API looks like:
 
 {
   "high_risk_patients": ["DEMO002", "DEMO031"],
@@ -100,25 +75,18 @@ The final submission includes:
   "data_quality_issues": ["DEMO004", "DEMO007"]
 }
 
-
 Each submission receives immediate scoring feedback from the API.
 
-🛠 Tech & Concepts Used
+## Tech & Concepts Used
 
-TypeScript / JavaScript
+- TypeScript / JavaScript
+- REST API integration
+- Pagination handling
+- Retry logic with backoff
+- Defensive data parsing
+- Deterministic risk scoring
+- Robust engineering for unreliable APIs
 
-REST API integration
+## Key Takeaway
 
-Pagination handling
-
-Retry logic for transient failures
-
-Defensive data parsing
-
-Deterministic risk scoring
-
-Clean, readable, production-style code
-
-✅ Key Takeaway
-
-This project reflects how I would build reliable data processing logic against real healthcare or enterprise APIs where data is rarely perfect. The emphasis is on correctness, resilience, and clarity rather than shortcuts.
+This project demonstrates how to build reliable data processing against real healthcare or enterprise APIs where data is often imperfect. The emphasis is on correctness, resilience, and clarity rather than shortcuts.
